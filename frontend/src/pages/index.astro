@@ -1,0 +1,56 @@
+---
+
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+</head>
+<body>
+	<h1>Chat room</h1>
+	<form class="message-form" action="">
+		<input type="text" id="usernameInput" placeholder="Enter your username">
+		<input type="text" id="messageInput" placeholder="Enter your message">
+		<button type="submit">Send message</button>
+	</form>
+	<ul class="messages"></ul>
+
+	<script type="module">
+		import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
+		const socket = io('http://localhost:3006')
+
+		const messageForm = document.querySelector('.message-form');
+		const messages = document.querySelector('.messages')
+
+		messageForm.addEventListener('submit',(e)=>{
+			e.preventDefault();
+			const usernameInput = messageForm.querySelector('#usernameInput').value.trim()
+			const messageInput = messageForm.querySelector('#messageInput')
+			socket.emit('sendMessage', { username: usernameInput, message: messageInput.value.trim() })
+			messageInput.value = ''
+		})
+
+		socket.on('newMessage', (data) => {
+			const li = document.createElement('li')
+			li.innerHTML = `<strong>${data.username}:</strong> ${data.message}`
+			messages.appendChild(li)
+		})
+
+		const getAllMessages = async () => {
+        const res = await fetch(`http://localhost:3006/api/chat`)
+		const data = await res.json()
+
+		if(res.ok){
+			data.forEach((chat) =>{
+			const li = document.createElement('li')
+		 	li.innerHTML = `<strong>${chat.username}:</strong> ${chat.message}`
+		 	messages.appendChild(li)
+		})
+	}}
+	
+	getAllMessages()
+	</script>
+</body>
+</html>

@@ -22,8 +22,8 @@ app.use('/api/chat', chatRouter);
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '', // Your frontend url here (Astro, React, vanilla HTML)
-    methods: ["GET", "POST"]
+    origin: "http://localhost:4322", // Your frontend url here (Astro, React, vanilla HTML)
+    methods: ["GET", "POST"],
   },
 });
 
