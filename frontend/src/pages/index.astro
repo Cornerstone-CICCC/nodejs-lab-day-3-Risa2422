@@ -9,13 +9,19 @@
 	<title>Document</title>
 </head>
 <body>
-	<h1>Chat room</h1>
+	<h2>Public Chat Room</h2>
 	<form class="message-form" action="">
 		<input type="text" id="usernameInput" placeholder="Enter your username">
 		<input type="text" id="messageInput" placeholder="Enter your message">
 		<button type="submit">Send message</button>
 	</form>
 	<ul class="messages"></ul>
+	<hr />
+	<h2>Private Chat Room</h2>
+	<p>You're in <span class="currentRoom"></span></p>
+	<button class="btn-room" data-room="Room 1">Room 1</button>
+	<button class="btn-room" data-room="Room 2">Room 2</button>
+	<button class="btn-room" data-room="Room 3">Room 3</button>
 
 	<script type="module">
 		import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
@@ -23,20 +29,52 @@
 
 		const messageForm = document.querySelector('.message-form');
 		const messages = document.querySelector('.messages')
+		const roomButtons = document.querySelectorAll('.btn-room')
+		const usernameInput = messageForm.querySelector('#usernameInput').value.trim()
+		const messageInput = messageForm.querySelector('#messageInput')
+
+      	let currentRoom = ''
+
+      // Handle room buttons
+      roomButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const newRoom = btn.getAttribute('data-room')
+          const username = usernameInput.value.trim() || 'Anonymous'
+
+          if (currentRoom) {
+            // Leave the current room
+            socket.emit('leave room', { room: currentRoom, username})
+          }
+
+          // Join new room
+          currentRoom = newRoom
+          socket.emit('join room', { room: currentRoom, username })
+
+          // Clear the messages ul
+          messages.innerHTML = ''
+        })
+      })
 
 		messageForm.addEventListener('submit',(e)=>{
 			e.preventDefault();
-			const usernameInput = messageForm.querySelector('#usernameInput').value.trim()
-			const messageInput = messageForm.querySelector('#messageInput')
 			socket.emit('sendMessage', { username: usernameInput, message: messageInput.value.trim() })
 			messageInput.value = ''
 		})
 
 		socket.on('newMessage', (data) => {
+			if(!currentRoom){
+				const li = document.createElement('li')
+				li.innerHTML = `<strong>${data.username}:</strong> ${data.message}`
+				messages.appendChild(li)
+			}
+			else if (data.room === currentRoom || !data.room) {
+
 			const li = document.createElement('li')
 			li.innerHTML = `<strong>${data.username}:</strong> ${data.message}`
 			messages.appendChild(li)
+			}
 		})
+
 
 		const getAllMessages = async () => {
         const res = await fetch(`http://localhost:3006/api/chat`)
