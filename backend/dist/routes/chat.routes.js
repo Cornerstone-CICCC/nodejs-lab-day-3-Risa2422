@@ -7,5 +7,6 @@ const express_1 = __importDefault(require("express"));
 const chat_controller_1 = __importDefault(require("../controllers/chat.controller"));
 const chatRouter = express_1.default.Router();
 // Get all chat messages
-chatRouter.get('/', chat_controller_1.default.getAllChats);
+chatRouter.get("/", chat_controller_1.default.getAllChats);
+chatRouter.get("/room", chat_controller_1.default.getMessagesByRoom);
 exports.default = chatRouter;

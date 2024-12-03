@@ -15,11 +15,13 @@ const setupChatSocket = (io: Server) => {
         const chat = new Chat({ username, message });
         await chat.save();
 
-        // Broadcast the chat object to all connected clients via the newMessage event
-        io.emit('newMessage', chat);
-        
-        // For room-based broadcast
-        io.to(data.room).emit("newMessage", chat);
+        if (chat.room === "") {
+          // Broadcast the chat object to all connected clients via the newMessage event
+          io.emit("newMessage", chat);
+        } else {
+          // For room-based broadcast
+          io.to(data.room).emit("newPrivateMessage", chat);
+        }
       } catch (error) {
         console.error("Error saving chat:", error);
       }
