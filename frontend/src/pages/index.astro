@@ -1,0 +1,138 @@
+---
+
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  </head>
+  <body>
+    <h2>Public Chat Room</h2>
+    <form class="message-form" action="">
+      <input type="text" id="usernameInput" placeholder="Enter your username">
+      <input type="text" id="messageInput" placeholder="Enter your message">
+      <button type="submit">Send message</button>
+    </form>
+    <ul class="messages"></ul>
+    <hr />
+    <h2>Private Chat Room</h2>
+    <form class="private-message-form" action="">
+      <input type="text" id="privateUsernameInput" placeholder="Enter your username">
+      <input type="text" id="privateMessageInput" placeholder="Enter your message">
+      <button type="submit">Send message</button>
+    </form>
+    <p>You're in <span class="currentRoom"></span></p>
+    <button class="btn-room" data-room="Room 1">Room 1</button>
+    <button class="btn-room" data-room="Room 2">Room 2</button>
+    <button class="btn-room" data-room="Room 3">Room 3</button>
+    <ul class="privateMessages"></ul>
+
+	<script type="module">
+		import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
+		const socket = io('http://localhost:3006')
+
+      const messageForm = document.querySelector('.message-form');
+      const privateMessageForm = document.querySelector('.private-message-form');
+      const messages = document.querySelector('.messages')
+      const privateMessages = document.querySelector('.privateMessages')
+      const roomButtons = document.querySelectorAll('.btn-room')
+      const currentRoomName = document.querySelector('.currentRoom')
+      let currentRoom = ''
+
+      // Get all messages
+      const getAllMessages = async () => {
+        try {
+          const res = await fetch(`http://localhost:3006/api/chat`)
+          const data = await res.json()
+
+          if (res.ok) {
+            data.forEach((chat) => {
+              const li = document.createElement('li')
+              li.innerHTML = `<strong>${chat.username}:</strong> ${chat.message}`
+              messages.appendChild(li)
+            })
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
+      // Get messages by room
+      const getMessagesByRoom = async (currentRoom) => {
+        try {
+          const res = await fetch(`http://localhost:3006/api/chat/room?room=${currentRoom}`)
+          const data = await res.json()
+
+          if (res.ok) {
+            data.forEach((chat) => {
+              const li = document.createElement('li')
+              li.innerHTML = `<strong>${chat.username}:</strong> ${chat.message}`
+              privateMessages.appendChild(li)
+            })
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
+      // Handle room buttons
+      roomButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const newRoom = btn.getAttribute('data-room')
+
+          if (currentRoom) {
+            // Leave the current room
+            socket.emit('leave room', { room: currentRoom })
+          }
+
+          // Join new room
+          currentRoom = newRoom
+          socket.emit('join room', { room: currentRoom })
+
+          // Clear the messages ul
+          privateMessages.innerHTML = ''
+
+		  // Get previous messages
+          getMessagesByRoom(currentRoom)
+
+          currentRoomName.textContent = newRoom;
+        })
+      })
+
+	  // Send a message in public chat room
+      messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = messageForm.querySelector('#usernameInput').value.trim()
+        const messageInput = messageForm.querySelector('#messageInput')
+		currentRoom = ""
+        socket.emit('sendMessage', { username: username, message: messageInput.value.trim(), room: currentRoom })
+        messageInput.value = ''
+      })
+
+	  // Send a message in private chat room
+      privateMessageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = privateMessageForm.querySelector('#privateUsernameInput').value.trim()
+        const messageInput = privateMessageForm.querySelector('#privateMessageInput')
+        socket.emit('sendMessage', { username: username, message: messageInput.value.trim(), room: currentRoom })
+        messageInput.value = ''
+      })
+
+      socket.on('newMessage', (data) => {
+        const li = document.createElement('li')
+        li.innerHTML = `<strong>${data.username}:</strong> ${data.message}`
+		messages.appendChild(li)
+      })
+
+	   socket.on('newPrivateMessage', (data) => {
+        const li = document.createElement('li')
+        li.innerHTML = `<strong>${data.username}:</strong> ${data.message}`
+		privateMessages.appendChild(li)
+      })
+
+      getAllMessages()
+    </script>
+  </body>
+</html>
